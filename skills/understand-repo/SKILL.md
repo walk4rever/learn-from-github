@@ -8,7 +8,7 @@ description: >-
   或说了"帮我看看这个项目"、"分析这个仓库"、"这个项目怎么工作的"。
   DO NOT TRIGGER when: 用户只想修改或调试某个具体文件。
 origin: judge-the-code
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Understand Repo — GitHub 项目理解向导
@@ -149,9 +149,20 @@ version: 1.2.0
 
 3. 告诉用户当前状态后，继续后续流程
 
+---
+
 ### Phase 1：并行 5 Agent 分析
 
-**启动前，输出以下进度公告：**
+**启动前，确定 skill 目录路径**（供各 Agent 加载详细规格）：
+
+```bash
+find ~/.agents/skills ~/.claude/skills -name "SKILL.md" -path "*/understand-repo/*" 2>/dev/null \
+  | head -1 | xargs dirname
+```
+
+将结果记为 `{SKILL_DIR}`。
+
+**输出进度公告：**
 
 ```
 🚀 开始分析，同时启动 5 个 Agent...
@@ -167,370 +178,16 @@ version: 1.2.0
 
 **同时启动以下 5 个 Explore 子 Agent，全部并行执行：**
 
----
-
-#### Agent 1 — 技术栈探测器 (Stack Detector)
-
-**任务**：识别项目使用的语言、框架、运行时。
-
-⚠️ **只读配置/清单文件，不读源码。每个文件最多读 80 行。**
-
-检查以下文件（按优先级）：
-- `package.json` → Node.js/前端项目
-- `go.mod` / `go.sum` → Go 项目
-- `requirements.txt` / `pyproject.toml` / `setup.py` / `Pipfile` → Python 项目
-- `Cargo.toml` → Rust 项目
-- `pom.xml` / `build.gradle` / `build.gradle.kts` → Java/Kotlin 项目
-- `composer.json` → PHP 项目
-- `Gemfile` → Ruby 项目
-- `*.csproj` / `*.sln` → .NET 项目
-- `mix.exs` → Elixir 项目
-
-从 `package.json` 中提取：
-- `dependencies` 中的框架（React/Vue/Angular/Express/Next.js/Nest.js 等）
-- `devDependencies` 中的工具链
-- `scripts` 字段了解项目命令
-
-**输出格式**：
-```
-## 技术栈
-- 主语言: [语言 + 版本]
-- 框架: [框架名 + 版本]
-- 运行时: [Node 18 / Python 3.11 / Go 1.21 等]
-- 包管理器: [npm/yarn/pnpm/pip/go modules 等]
-- 构建工具: [webpack/vite/esbuild/make 等]
-- 测试框架: [jest/pytest/go test 等]
-- 类型系统: [TypeScript/mypy/强类型/动态类型]
-```
-
-**Agent 1 完成后，输出：**
-```
-✅ Agent 1/5 完成 — 技术栈已识别
-```
-
----
-
-#### Agent 2 — 架构分析师 (Architecture Mapper)
-
-**任务**：识别项目整体架构和目录职责。
-
-⚠️ **只用 Glob 获取文件树（路径列表），不读取源码文件内容。README 最多读前 150 行。**
-
-步骤：
-1. 用 Glob 获取完整目录结构（**只拿路径，不读内容**）：
-   ```
-   Glob pattern="*"           # 顶层目录
-   Glob pattern="*/*"         # 第二层
-   Glob pattern="*/*/*"       # 第三层（通常足够推断架构）
-   ```
-   不要使用 `**/*`（会返回所有文件，过于庞大）
-
-2. **识别 index/barrel 文件，提取真实模块依赖**（新增步骤）：
-
-   按以下优先级查找 index 文件，取满 **5 个**为止：
-   - 根目录下的 `index.*`
-   - `src/` 下的 `index.*`
-   - 各一级子目录下的 `index.*`（如 `src/routes/index.*`、`src/services/index.*`）
-
-   对每个找到的 index 文件，用 Grep 提取 import 行：
-   ```
-   Grep pattern="^import" 前 30 行
-   Grep pattern="^from"   前 30 行  （Python 风格）
-   Grep pattern="require(" 前 30 行 （CommonJS 风格）
-   ```
-   从中提取 `from "..."` 或 `require("...")` 的路径，推断模块间真实依赖关系。
-
-3. 识别架构模式：
-   - **MVC**: `models/` + `views/` + `controllers/`
-   - **Clean Architecture**: `domain/` + `application/` + `infrastructure/` + `interfaces/`
-   - **Feature-based**: 按功能模块组织（`auth/` + `user/` + `payment/`）
-   - **Monorepo**: `packages/` 或 `apps/` 下有多个子项目
-   - **Layered**: `api/` + `service/` + `repository/` + `model/`
-   - **Microservices**: 多个独立服务目录
-3. **Monorepo 检测**：如果顶层目录中存在 `packages/`、`apps/`、`services/` 且各自包含多个子目录，判断为 monorepo。
-   此时**暂停分析**，向用户询问：
-   ```
-   ⚠️  检测到这是一个 Monorepo，包含以下子包：
-   - packages/ui
-   - packages/core
-   - apps/web
-   - apps/api
-   你想重点分析哪个？（输入路径，或输入 all 分析整体架构）
-   ```
-   根据用户选择，将后续所有 Agent 的分析范围限定在该子目录。
-4. 阅读 README.md（如存在）提取架构描述，最多读前 150 行
-5. 检查 `docs/` 或 `documentation/` 目录
-
-**输出格式**：
-```
-## 架构设计
-- 架构模式: [MVC / Clean Arch / Feature-based / Monorepo / ...]
-- 项目类型: [Web API / 前端 SPA / CLI 工具 / 库/SDK / 全栈应用 / ...]
-
-### 模块依赖图
-
-> 注：依赖关系基于 index 文件 import 推断，不代表完整调用图
-
-```mermaid
-graph TD
-  subgraph routes["Routes 层 — HTTP 路由入口"]
-    R[api.ts]
-  end
-  subgraph controllers["Controllers 层 — 解析参数，调用 Service"]
-    C[UserController.ts]
-  end
-  subgraph services["Services 层 — 核心业务逻辑"]
-    S[UserService.ts]
-  end
-  subgraph models["Models 层 — 数据模型"]
-    M[User.ts]
-  end
-  routes --> controllers
-  controllers --> services
-  services --> models
-```
-
-**节点规则**：
-- 同目录下文件 ≤ 3 个：每个文件单独作为节点，节点名 = 文件名（不含扩展名）
-- 同目录下文件 > 3 个：合并为一个 subgraph，subgraph 名 = 目录名
-- 总节点数上限 15 个；超出时只保留顶层目录级别的 subgraph
-- 每个节点/subgraph 的标签格式：`名称 — 一句话职责`
-
-### 核心模块
-| 模块 | 路径 | 职责 |
-|------|------|------|
-| 认证 | src/auth/ | 用户登录、JWT 管理 |
-| ... | ... | ... |
-```
-
-**Agent 2 完成后，输出：**
-```
-✅ Agent 2/5 完成 — 架构图已生成
-```
-
----
-
-#### Agent 3 — 入口追踪者 (Entry Point Tracer)
-
-**任务**：找到程序的启动入口和核心执行流程。
-
-⚠️ **先用 Grep 搜索关键词定位文件，再读文件前 60 行。最多读 5 个文件。**
-
-寻找入口文件（按语言）：
-- **Node.js**: `index.js/ts`, `server.js/ts`, `app.js/ts`, `main.js/ts`, `package.json` 的 `main`/`bin` 字段
-- **Next.js/React**: `app/page.tsx`, `pages/index.tsx`, `src/App.tsx`
-- **Go**: `main.go`, `cmd/*/main.go`
-- **Python**: `main.py`, `app.py`, `manage.py` (Django), `run.py`, `__main__.py`
-- **Java**: 包含 `public static void main` 的文件，`Application.java` (Spring Boot)
-- **Rust**: `src/main.rs`, `src/lib.rs`
-
-步骤：
-1. 用 Glob 找候选入口文件（`**/main.*`, `**/index.*`, `**/app.*`, `**/server.*`）
-2. 用 Grep 搜索启动关键词：`"listen\|app.run\|serve\|bootstrap\|StartServer"` 快速定位真正的入口
-3. 读入口文件前 **60 行**（只看初始化部分）
-4. 用 Grep 搜索 `import|require` 识别被频繁引用的核心模块（**不要读这些模块**，只记录路径）
-5. **不要递归追踪调用链**——只记录"核心业务逻辑在哪个目录"即可
-
-**输出格式**：
-```
-## 程序入口与核心流程
-
-### 启动入口
-- 文件: `src/server.ts:1`
-- 启动顺序: 加载环境变量 → 初始化数据库 → 注册路由 → 监听端口
-
-### 请求流程图
-
-> 注：时序图仅覆盖入口到第一层调用，不代表完整请求链路
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant E as server.ts — 启动入口
-  participant R as routes/api.ts — 路由分发
-  participant C as UserController — 参数解析
-  participant S as UserService — 业务逻辑
-  U->>E: 启动服务
-  E->>R: 注册路由
-  U->>R: HTTP Request
-  R->>C: 匹配路由，转发请求
-  C->>S: 调用业务逻辑
-  S-->>C: 返回结果
-  C-->>R: 响应数据
-  R-->>U: HTTP Response
-```
-
-**fallback**：若入口文件无明显调用链（如纯库项目、CLI 工具），跳过时序图，改用文字描述执行流程。
-
-### 最重要的文件（建议优先阅读）
-1. `src/server.ts` — 应用入口，了解整体初始化
-2. `src/routes/index.ts` — 所有 API 路由一览
-3. `src/services/` — 核心业务逻辑所在
-```
-
-**Agent 3 完成后，输出：**
-```
-✅ Agent 3/5 完成 — 入口流程已梳理
-```
-
----
-
-#### Agent 4 — 依赖分析师 (Dependency Analyst)
-
-**任务**：分析关键依赖库，解释"为什么用这个库"。
-
-⚠️ **只读依赖声明文件，最多读 80 行。不要读任何源码文件。**
-
-步骤：
-1. 读取依赖声明文件（`package.json` 前 80 行、`requirements.txt` 前 80 行 等）
-2. 将依赖分类：核心框架 / 数据库 / 认证 / HTTP / 工具 / 测试 / 构建
-3. 对非显而易见的库解释其用途（基于库名 + 已知知识推断，**不需要去读库的源码**）
-4. 识别项目的技术选型风格（保守/前沿/重量级/轻量级）
-
-常见库识别表（示例）：
-- `prisma` / `typeorm` / `drizzle` → 数据库 ORM
-- `zod` / `joi` / `yup` → 数据校验
-- `bullmq` / `bee-queue` → 任务队列
-- `socket.io` → 实时通信
-- `stripe` → 支付
-- `openai` / `anthropic` → AI/LLM 接入
-- `redis` / `ioredis` → 缓存
-- `winston` / `pino` → 日志
-
-**输出格式**：
-```
-## 关键依赖解析
-
-### 核心框架
-- `express@4.18` — Web 框架，处理 HTTP 路由
-- `prisma@5.x` — 数据库 ORM，类型安全的数据库访问
-
-### 业务相关
-- `stripe@14` — 支付处理（说明项目有付费功能）
-- `openai@4` — 调用 GPT API（说明项目有 AI 功能）
-
-### 工具库
-- `zod` — 运行时类型校验，用于 API 入参验证
-- `dayjs` — 时间处理（比 moment.js 更轻量）
-
-### 技术选型风格
-[保守稳定 / 激进前沿 / 轻量极简 / 重型企业级]
-原因: ...
-```
-
-**Agent 4 完成后，输出：**
-```
-✅ Agent 4/5 完成 — 依赖关系已解析
-```
-
----
-
-#### Agent 5 — 开发环境向导 (Dev Setup Guide)
-
-**任务**：提取本地运行所需的全部信息。
-
-⚠️ **每个文件限读指定行数，重点提取命令和变量名，不需要读完整文件。**
-
-检查以下文件（**按顺序，找到足够信息即停止**）：
-- `README.md` — 前 **150 行**，用 Grep 搜索 `"install\|setup\|getting started\|run\|start\|require\|gpu\|cuda\|hardware"` 定位相关章节
-- `.env.example` / `.env.sample` — 前 **50 行**，只提取变量名和注释
-- `package.json` scripts 字段 — 用 Grep 搜索 `"scripts"` 附近 **30 行**
-- `Makefile` — 前 **40 行**（通常 target 都在前面）
-- `docker-compose.yml` — 前 **60 行**
-- `.github/workflows/*.yml` — 只看 **1 个** CI 文件的前 **40 行**
-- `requirements.txt` / `pyproject.toml` — 用 Grep 搜索 `"torch\|tensorflow\|cuda\|gpu\|nvidia\|jax\|triton"` 判断是否有 GPU 依赖
-
-**硬件需求识别规则**（检测到以下信号时，必须在输出中标注）：
-
-| 信号 | 意味着 |
-|------|--------|
-| 依赖中含 `torch`, `tensorflow`, `jax`, `triton` | 可能需要 GPU（推理/训练量决定严重程度）|
-| README 中出现 `CUDA`, `GPU`, `VRAM`, `A100`, `H100`, `RTX` | 明确 GPU 要求 |
-| `docker-compose.yml` 中含 `deploy.resources.reservations.devices` | Docker GPU 直通 |
-| 依赖中含 `onnxruntime-gpu`, `cupy`, `faiss-gpu` | GPU 专属版本 |
-| `.env.example` 含 `MODEL_PATH`, `WEIGHTS_PATH`, `CHECKPOINT` | 需要下载大模型权重 |
-| README 中出现 `vLLM`, `TensorRT`, `DeepSpeed`, `NCCL` | 推理/训练框架，通常需要高端 GPU |
-
-**输出格式**：
-```
-## 本地开发指南
-
-### ⚡ 本地可运行性评估
-
-> 说明：这个部分解释"能不能在普通开发机上跑起来"，以及"和生产部署的差距在哪"。
-
-**本地可运行等级**：[从以下选一个]
-
-🟢 **完全可本地运行** — 无特殊硬件要求，按快速启动步骤即可
-🟡 **部分可本地运行** — 核心功能可跑，但以下能力受限：
-   - [例：向量检索需要 GPU 才能有合理速度，本地 CPU 运行会极慢]
-   - [例：模型推理在本地只能用 CPU 版本，结果相同但速度慢 10-50x]
-🔴 **本地运行受限** — 强依赖以下硬件/服务，普通开发机无法完整运行：
-   - [例：训练脚本需要 NVIDIA GPU（至少 16GB VRAM），CPU 不支持]
-   - [例：推理服务依赖 CUDA，无 GPU 则无法启动]
-
-**生产部署 vs 本地开发 的差距**：
-
-| 维度 | 生产要求 | 本地替代方案 |
-|------|---------|------------|
-| GPU | [例：A100 80GB] | [例：可用 CPU 跑小模型，或用 API 替代] |
-| 内存 | [例：256GB RAM] | [例：减小 batch size 可在 16GB 运行] |
-| 存储 | [例：2TB 模型权重] | [例：可下载量化版本（约 4GB）] |
-| 外部服务 | [例：需要 AWS S3 / Pinecone] | [例：可用本地 MinIO / Chroma 替代] |
-
-> 如果没有 GPU 硬件，建议的替代方案：
-> - [例：使用 OpenAI API / Anthropic API 替代本地推理]
-> - [例：使用 Hugging Face Inference Endpoints]
-> - [例：Google Colab / Kaggle Notebooks（免费 GPU）]
-> - [例：仅运行数据处理/评估部分，跳过训练]
-
----
-
-### 前置要求
-- Node.js >= 18
-- PostgreSQL 14+
-- Redis (可选，用于缓存)
-
-### 快速启动
-```bash
-# 1. 安装依赖
-npm install
-
-# 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env，填入以下必填项：
-# DATABASE_URL=postgresql://...
-# JWT_SECRET=your-secret
-
-# 3. 初始化数据库
-npm run db:migrate
-
-# 4. 启动开发服务器
-npm run dev
-```
-
-### 常用命令
-| 命令 | 用途 |
-|------|------|
-| `npm run dev` | 启动开发服务器（热重载） |
-| `npm run test` | 运行测试 |
-| `npm run build` | 生产构建 |
-| `npm run lint` | 代码检查 |
-
-### 环境变量说明
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `DATABASE_URL` | ✅ | PostgreSQL 连接字符串 |
-| `JWT_SECRET` | ✅ | JWT 签名密钥 |
-| `REDIS_URL` | ❌ | Redis 地址，默认 localhost:6379 |
-```
-
-**Agent 5 完成后，输出：**
-```
-✅ Agent 5/5 完成 — 开发环境已整理
-
-所有 Agent 完成，正在综合输出...
-```
+每个 Agent 的启动格式：
+> 读取 `{SKILL_DIR}/agents/agentN-xxx.md`，按其中的说明执行分析，完成后返回结果。
+
+| Agent | 规格文件 | 分析维度 |
+|-------|---------|---------|
+| Agent 1 | `{SKILL_DIR}/agents/agent1-stack-detector.md` | 语言、框架、运行时 |
+| Agent 2 | `{SKILL_DIR}/agents/agent2-architecture-mapper.md` | 目录结构、架构模式、Mermaid 图 |
+| Agent 3 | `{SKILL_DIR}/agents/agent3-entry-point-tracer.md` | 启动入口、请求时序图 |
+| Agent 4 | `{SKILL_DIR}/agents/agent4-dependency-analyst.md` | 依赖分类、技术选型解读 |
+| Agent 5 | `{SKILL_DIR}/agents/agent5-dev-setup-guide.md` | 本地运行、硬件要求、环境变量 |
 
 ---
 
@@ -670,6 +327,8 @@ qa_count: 0
 
 （会话中的重要问题和结论将记录在这里）
 ```
+
+---
 
 ### Phase 3：渐进式深度学习模式
 
@@ -819,8 +478,6 @@ qa_count: 0
 📊 已探索: 5个文件 | 路径 A 进度: 2/4 | 状态已保存至 .repo-context/
 ```
 
-这让用户感知到自己的学习进度，并知道随时可以中断、下次恢复。
-
 #### 3.6 会话恢复流程（Phase 0 选择 R 时）
 
 加载三个状态文件后，直接恢复到中断位置：
@@ -861,7 +518,6 @@ qa_count: 0
 .repo-context/
 UNDERSTANDING.md
 ```
-这些文件是个人的学习记录，通常不需要提交到团队仓库。
 
 ---
 
@@ -871,7 +527,7 @@ UNDERSTANDING.md
 - **架构模式必须有依据**：不能凭感觉猜，要引用具体目录结构证明
 - **依赖解释要说"为什么"**：不只是说"这是什么库"，要说"项目用这个库做了什么"
 - **本地运行步骤要可执行**：步骤必须是真实可操作的，不能有假命令
-- **硬件门槛必须明确说明**：如果项目有 GPU/大内存/专有硬件依赖，必须在"本地可运行性评估"中标注，并给出替代方案（API、云 GPU、量化版本等），不能只写"安装即可运行"而忽略硬件限制
+- **硬件门槛必须明确说明**：如果项目有 GPU/大内存/专有硬件依赖，必须在"本地可运行性评估"中标注
 - **学习路径要有优先级**：必须明确"先看什么，再看什么"
 
 ---
@@ -879,14 +535,8 @@ UNDERSTANDING.md
 ## 示例调用
 
 ```
-# 分析当前目录的项目
 /understand-repo .
-
-# 分析指定路径
 /understand-repo ~/projects/some-cloned-repo
-
-# 中文提问触发
 帮我理解一下这个项目 /path/to/repo
 这个项目是怎么工作的？
-分析一下这个仓库
 ```
