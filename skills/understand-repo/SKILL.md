@@ -7,8 +7,8 @@ description: >-
   TRIGGER when: 用户想理解、学习、研究一个 clone 下来的 GitHub 项目，
   或说了"帮我看看这个项目"、"分析这个仓库"、"这个项目怎么工作的"。
   DO NOT TRIGGER when: 用户只想修改或调试某个具体文件。
-origin: learn-from-github
-version: 1.1.0
+origin: judge-the-code
+version: 1.2.0
 ---
 
 # Understand Repo — GitHub 项目理解向导
@@ -59,7 +59,22 @@ version: 1.1.0
 
 ### Phase 0：确认目标 & 检查历史状态
 
-1. 确认项目路径存在且有内容
+1. **输入验证**（路径异常时立即停止并提示，不继续执行）：
+
+   - **路径为空** → 提示：
+     ```
+     ❌ 请提供项目路径，例如：
+        /understand-repo .              （当前目录）
+        /understand-repo ~/projects/my-repo
+     ```
+   - **路径不存在** → 提示：
+     ```
+     ❌ 路径 `{path}` 不存在，请检查路径是否正确。
+     ```
+   - **路径是文件而非目录** → 提示：
+     ```
+     ❌ `{path}` 是一个文件，请提供项目根目录路径。
+     ```
 
 2. **检查是否存在 `.repo-context/PROGRESS.md`**（之前会话留下的状态）：
 
@@ -190,7 +205,23 @@ version: 1.1.0
    Glob pattern="*/*/*"       # 第三层（通常足够推断架构）
    ```
    不要使用 `**/*`（会返回所有文件，过于庞大）
-2. 识别架构模式：
+
+2. **识别 index/barrel 文件，提取真实模块依赖**（新增步骤）：
+
+   按以下优先级查找 index 文件，取满 **5 个**为止：
+   - 根目录下的 `index.*`
+   - `src/` 下的 `index.*`
+   - 各一级子目录下的 `index.*`（如 `src/routes/index.*`、`src/services/index.*`）
+
+   对每个找到的 index 文件，用 Grep 提取 import 行：
+   ```
+   Grep pattern="^import" 前 30 行
+   Grep pattern="^from"   前 30 行  （Python 风格）
+   Grep pattern="require(" 前 30 行 （CommonJS 风格）
+   ```
+   从中提取 `from "..."` 或 `require("...")` 的路径，推断模块间真实依赖关系。
+
+3. 识别架构模式：
    - **MVC**: `models/` + `views/` + `controllers/`
    - **Clean Architecture**: `domain/` + `application/` + `infrastructure/` + `interfaces/`
    - **Feature-based**: 按功能模块组织（`auth/` + `user/` + `payment/`）
@@ -217,13 +248,34 @@ version: 1.1.0
 - 架构模式: [MVC / Clean Arch / Feature-based / Monorepo / ...]
 - 项目类型: [Web API / 前端 SPA / CLI 工具 / 库/SDK / 全栈应用 / ...]
 
-### 目录结构说明
-src/
-├── api/        → HTTP 路由和控制器
-├── services/   → 业务逻辑层
-├── models/     → 数据模型
-├── utils/      → 工具函数
-└── ...
+### 模块依赖图
+
+> 注：依赖关系基于 index 文件 import 推断，不代表完整调用图
+
+```mermaid
+graph TD
+  subgraph routes["Routes 层 — HTTP 路由入口"]
+    R[api.ts]
+  end
+  subgraph controllers["Controllers 层 — 解析参数，调用 Service"]
+    C[UserController.ts]
+  end
+  subgraph services["Services 层 — 核心业务逻辑"]
+    S[UserService.ts]
+  end
+  subgraph models["Models 层 — 数据模型"]
+    M[User.ts]
+  end
+  routes --> controllers
+  controllers --> services
+  services --> models
+```
+
+**节点规则**：
+- 同目录下文件 ≤ 3 个：每个文件单独作为节点，节点名 = 文件名（不含扩展名）
+- 同目录下文件 > 3 个：合并为一个 subgraph，subgraph 名 = 目录名
+- 总节点数上限 15 个；超出时只保留顶层目录级别的 subgraph
+- 每个节点/subgraph 的标签格式：`名称 — 一句话职责`
 
 ### 核心模块
 | 模块 | 路径 | 职责 |
@@ -263,10 +315,28 @@ src/
 - 文件: `src/server.ts:1`
 - 启动顺序: 加载环境变量 → 初始化数据库 → 注册路由 → 监听端口
 
-### 核心执行路径
-[用户请求] → routes/api.ts → controllers/UserController.ts
-           → services/UserService.ts → repositories/UserRepo.ts
-           → [数据库]
+### 请求流程图
+
+> 注：时序图仅覆盖入口到第一层调用，不代表完整请求链路
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant E as server.ts — 启动入口
+  participant R as routes/api.ts — 路由分发
+  participant C as UserController — 参数解析
+  participant S as UserService — 业务逻辑
+  U->>E: 启动服务
+  E->>R: 注册路由
+  U->>R: HTTP Request
+  R->>C: 匹配路由，转发请求
+  C->>S: 调用业务逻辑
+  S-->>C: 返回结果
+  C-->>R: 响应数据
+  R-->>U: HTTP Response
+```
+
+**fallback**：若入口文件无明显调用链（如纯库项目、CLI 工具），跳过时序图，改用文字描述执行流程。
 
 ### 最重要的文件（建议优先阅读）
 1. `src/server.ts` — 应用入口，了解整体初始化

@@ -1,53 +1,115 @@
-# learn-from-github
+# judge-the-code
 
-帮助普通技术人快速理解陌生 GitHub 项目的 Claude Code Skill 集合。
+> 帮助人类在 AI 大量生成代码的时代，保持对代码的 Judgment 和 Taste。
 
-## 核心 Skill：`/understand-repo`
+---
 
-通过 **5 个并行 Agent** 分析代码库，30 分钟内建立完整的项目心智模型。
+## 为什么需要这个工具
 
-### 使用方式
+以前，写代码和理解代码是同一个动作。你写了什么，你就理解什么。
 
-在 Claude Code 中：
+现在，AI 在写代码。写和懂被解耦了。
+
+**AI 让代码能跑。但能跑不等于好。**
+
+AI 生成的代码可能：
+- 引入你没意识到的安全漏洞
+- 破坏项目原有的设计哲学
+- 埋下在 10 万用户时才爆的性能炸弹
+- 用了"有效"的捷径，制造下一个人踩不完的坑
+
+发现这些，需要人真正理解代码库的 DNA——它的设计取向、历史决策、在乎什么。
+
+这个理解，不能靠 lint，不能靠测试，**只能靠人的判断力**。
+
+`judge-the-code` 是帮你维持这个判断力的工具。
+
+---
+
+## 两件事
 
 ```
+Taste（欣赏力）                    Judgment（判断力）
+──────────────────────────────────────────────────────
+这里的设计很精妙，为什么？           这里有个坑，小心
+这个抽象层级恰到好处               这个模式看起来干净，但会爆
+这是一个值得学习的决策             这里有个隐性安全漏洞
+这个 API 让错误用法很难发生         这个假设在高并发下会失效
+
+让人看见代码的好                   让人看见代码的恶
+```
+
+---
+
+## 架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    judge-the-code                           │
+├──────────────────────────┬──────────────────────────────────┤
+│    Skill 层（Claude）     │      Tool 层（Go CLI）            │
+├──────────────────────────┼──────────────────────────────────┤
+│  understand-repo         │                                  │
+│  philosophy-extractor    │                                  │
+│                          │                                  │
+│  demon-hunter ←──────────┼── semgrep / npm audit / trivy   │
+│  • 解读扫描结果           │   确定性扫描，CVE 数据库支撑      │
+│  • 结合项目上下文判断     │   go install 一行装好            │
+│  • 解释为什么危险         │                                  │
+│  • 给出修复建议           │                                  │
+└──────────────────────────┴──────────────────────────────────┘
+
+工具找问题（确定性）  +  Claude 解释问题（语义性）
+```
+
+## Skills
+
+| 组件 | 形态 | 作用 | 状态 |
+|------|------|------|------|
+| `understand-repo` | Skill | 建立代码库全局认知（结构、技术栈、入口、依赖） | ✅ 可用 |
+| `philosophy-extractor` | Skill | 提取设计思路与关键决策，找到值得学习的地方 | 🚧 规划中 |
+| `demon-hunter` | Skill + Go CLI | 发现安全漏洞、性能隐患、技术债、设计陷阱 | 🚧 规划中 |
+
+三个组件组合使用，构成完整的 `judge-the-code` 工作流：
+
+```
+understand-repo  →  philosophy-extractor  →  demon-hunter
+"这个项目长什么样"    "哪里设计得好，为什么"      "哪里有恶魔"
+     结构层                 欣赏层                  判断层
+```
+
+---
+
+## 使用方式
+
+```bash
+# 第一步：理解项目结构
 /understand-repo .
-/understand-repo /path/to/cloned/repo
+
+# 第二步：提取设计哲学（规划中）
+/philosophy-extractor .
+
+# 第三步：猎杀恶魔（规划中）
+/demon-hunter .
 ```
 
-或直接描述：
-```
-帮我理解一下这个项目 ~/projects/some-repo
-分析一下 /path/to/project 这个仓库
-```
-
-### 5 个并行分析维度
-
-| Agent | 分析内容 | 输出 |
-|-------|---------|------|
-| Stack Detector | 语言、框架、运行时 | 技术栈一览 |
-| Architecture Mapper | 目录结构、设计模式 | 架构图 + 模块说明 |
-| Entry Point Tracer | 主入口、启动流程 | 核心执行路径 |
-| Dependency Analyst | 依赖库 + 使用意图 | 关键依赖解析 |
-| Dev Setup Guide | 本地运行所需全部信息 | 快速启动手册 |
-
-### 输出
-
-- **`UNDERSTANDING.md`** — 保存到分析的项目根目录
-- **交互式答疑** — 分析完成后进入专家陪伴模式，可直接提问
+---
 
 ## 安装
 
 ```bash
-# 安装 skill 到 Claude Code
-cp -r skills/understand-repo ~/.claude/skills/understand-repo
+# 安装单个 skill
+cp -r skills/understand-repo ~/.claude/skills/
+
+# 安装全部
+cp -r skills/* ~/.claude/skills/
 ```
 
-## 目录结构
+---
 
-```
-learn-from-github/
-└── skills/
-    └── understand-repo/
-        └── SKILL.md    ← 核心 skill 定义
-```
+## 适用场景
+
+- **评估一个库要不要引入** — 不只看它能干什么，还看它有什么坑
+- **学习优秀项目的设计** — 带着批判性眼光，找到真正值得偷的东西
+- **Review AI 生成的代码** — 验证 AI 没有破坏项目的设计哲学，没有埋雷
+- **接手陌生代码库** — 快速建立判断力，而不只是走马观花
