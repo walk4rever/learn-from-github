@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>judge-the-code dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0f1117;
+  color: #e1e4e8;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f0f6fc;
+  letter-spacing: -0.3px;
+}
+header h1 span { color: #58a6ff; }
+.generated-at { font-size: 12px; color: #6e7681; }
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 28px 0;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+}
+.tab-btn {
+  padding: 8px 18px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover { color: #e1e4e8; }
+.tab-btn.active {
+  color: #f0f6fc;
+  border-bottom-color: #58a6ff;
+  background: #0f1117;
+}
+.tab-btn .icon { margin-right: 6px; }
+.tab-btn .badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  background: #21262d;
+  color: #8b949e;
+}
+.tab-btn.active .badge { background: #1f6feb; color: #fff; }
+
+/* ── Panels ── */
+.panel { display: none; padding: 32px 28px; max-width: 960px; margin: 0 auto; }
+.panel.active { display: block; }
+
+.empty-state {
+  text-align: center;
+  padding: 80px 0;
+  color: #6e7681;
+}
+.empty-state .cmd {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: #21262d;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #58a6ff;
+}
+
+/* ── Markdown content ── */
+.md-body { line-height: 1.7; }
+.md-body h1 { font-size: 26px; color: #f0f6fc; margin: 0 0 8px; border-bottom: 1px solid #21262d; padding-bottom: 10px; }
+.md-body h2 { font-size: 20px; color: #f0f6fc; margin: 32px 0 12px; }
+.md-body h3 { font-size: 16px; color: #e1e4e8; margin: 24px 0 8px; }
+.md-body h4 { font-size: 14px; color: #8b949e; margin: 16px 0 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.md-body p { margin: 8px 0; color: #c9d1d9; }
+.md-body a { color: #58a6ff; }
+.md-body code {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 13px;
+  background: #161b22;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #f97583;
+}
+.md-body pre {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.md-body pre code { background: none; padding: 0; color: #e1e4e8; }
+.md-body blockquote {
+  border-left: 3px solid #30363d;
+  padding: 4px 16px;
+  color: #6e7681;
+  margin: 12px 0;
+}
+.md-body table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+.md-body th { background: #161b22; color: #8b949e; padding: 8px 12px; text-align: left; border: 1px solid #30363d; font-weight: 600; }
+.md-body td { padding: 8px 12px; border: 1px solid #21262d; color: #c9d1d9; }
+.md-body tr:hover td { background: #161b22; }
+.md-body ul, .md-body ol { padding-left: 20px; margin: 8px 0; }
+.md-body li { margin: 4px 0; color: #c9d1d9; }
+.md-body hr { border: none; border-top: 1px solid #21262d; margin: 28px 0; }
+
+/* ── Mermaid diagrams ── */
+.mermaid {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+/* ── demon-hunter severity colors ── */
+.md-body h3:has(+ *) { }
+
+/* Severity badge coloring via text matching */
+.sev-critical { color: #ff7b72; font-weight: 700; }
+.sev-high     { color: #f0883e; font-weight: 700; }
+.sev-medium   { color: #d29922; font-weight: 700; }
+.sev-low      { color: #3fb950; }
+
+/* Color H2/H3 headings in demon-hunter by content */
+#panel-hunter .md-body h2,
+#panel-hunter .md-body h3 {
+  padding-left: 4px;
+  border-left: 3px solid transparent;
+}
+#panel-hunter .md-body h2 { border-left-color: #30363d; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>judge<span>-the-code</span></h1>
+  <span class="generated-at">Generated <!--GENERATED_AT--></span>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('explore')" id="tab-explore">
+    <span class="icon">🗺</span>code-explore
+    <span class="badge" id="badge-explore">—</span>
+  </button>
+  <button class="tab-btn" onclick="show('lens')" id="tab-lens">
+    <span class="icon">🔍</span>design-lens
+    <span class="badge" id="badge-lens">—</span>
+  </button>
+  <button class="tab-btn" onclick="show('hunter')" id="tab-hunter">
+    <span class="icon">👹</span>demon-hunter
+    <span class="badge" id="badge-hunter">—</span>
+  </button>
+</div>
+
+<div id="panel-explore" class="panel active"></div>
+<div id="panel-lens" class="panel"></div>
+<div id="panel-hunter" class="panel"></div>
+
+<script>
+const content = {
+  explore: <!--CONTENT_EXPLORE-->,
+  lens:    <!--CONTENT_LENS-->,
+  hunter:  <!--CONTENT_HUNTER-->
+};
+
+const EMPTY_MSGS = {
+  explore: { cmd: '/code-explore .', msg: '尚未运行 code-explore' },
+  lens:    { cmd: '/design-lens .', msg: '尚未运行 design-lens' },
+  hunter:  { cmd: '/demon-hunter .', msg: '尚未运行 demon-hunter' },
+};
+
+// ── markdown-it setup ──
+const md = markdownit({ html: false, linkify: true, typographer: true });
+
+// ── mermaid setup ──
+mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+// ── render panel ──
+async function renderPanel(id) {
+  const panel = document.getElementById('panel-' + id);
+  const badge = document.getElementById('badge-' + id);
+  const raw = content[id];
+
+  if (!raw || raw.trim() === '') {
+    const info = EMPTY_MSGS[id];
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:48px;margin-bottom:16px">📭</div>
+        <div>${info.msg}</div>
+        <div class="cmd">${info.cmd}</div>
+      </div>`;
+    badge.textContent = '—';
+    badge.style.background = '#21262d';
+    return;
+  }
+
+  // Render markdown
+  panel.innerHTML = '<div class="md-body">' + md.render(raw) + '</div>';
+  badge.textContent = '✓';
+
+  // Color demon-hunter badges based on heading text
+  if (id === 'hunter') {
+    colorSeverity(panel);
+    badge.textContent = countFindings(raw);
+    badge.style.background = '#b91c1c';
+    badge.style.color = '#fff';
+  }
+
+  // Extract and render mermaid blocks
+  panel.querySelectorAll('pre code').forEach(block => {
+    const lang = [...block.classList].find(c => c.startsWith('language-'));
+    if (lang === 'language-mermaid') {
+      const pre = block.parentElement;
+      const div = document.createElement('div');
+      div.className = 'mermaid';
+      div.textContent = block.textContent;
+      pre.replaceWith(div);
+    }
+  });
+
+  try {
+    await mermaid.run({ nodes: panel.querySelectorAll('.mermaid') });
+  } catch(e) {
+    console.warn('mermaid render error:', e);
+  }
+}
+
+function colorSeverity(panel) {
+  panel.querySelectorAll('h2, h3').forEach(h => {
+    const txt = h.textContent;
+    if (/critical/i.test(txt)) h.style.borderLeftColor = '#ff7b72';
+    else if (/high|高危/i.test(txt)) h.style.borderLeftColor = '#f0883e';
+    else if (/medium|中危/i.test(txt)) h.style.borderLeftColor = '#d29922';
+    else if (/low|低危/i.test(txt)) h.style.borderLeftColor = '#3fb950';
+    else if (/设计|性能|耦合|陷阱/i.test(txt)) h.style.borderLeftColor = '#8b5cf6';
+  });
+}
+
+function countFindings(raw) {
+  // Count ### headings as individual findings
+  const matches = raw.match(/^### /gm);
+  return matches ? matches.length : '✓';
+}
+
+// ── tabs ──
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+// ── init ──
+(async () => {
+  await renderPanel('explore');
+  await renderPanel('lens');
+  await renderPanel('hunter');
+})();
+</script>
+
+</body>
+</html>

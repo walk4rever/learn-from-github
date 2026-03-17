@@ -101,13 +101,24 @@ code-explore  →  design-lens  →  demon-hunter
 ## 安装
 
 ```bash
-# 一步安装全部 skill
+# 1. 复制 skill
 cp -r skills/judge-the-code ~/.agents/skills/
+
+# 2. 一次性 setup（构建 dashboard + 下载扫描工具）
+~/.agents/skills/judge-the-code/setup
 ```
 
-所有子 skill（`code-explore`、`design-lens` 等）会被自动发现。
-
 > ⚠️ **升级提示**：每次更新后重新执行 cp 即可覆盖旧版本。
+
+## Dashboard
+
+分析完毕后，在项目目录运行：
+
+```bash
+~/.agents/skills/judge-the-code/bin/view .
+```
+
+自动生成 `.judge-the-code/dashboard.html` 并在浏览器打开，渲染 Mermaid 架构图、设计决策评级、安全漏洞报告。
 
 ---
 

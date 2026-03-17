@@ -49,7 +49,7 @@ code-explore  →  design-lens  →  demon-hunter
 ```
 
 bearer（SAST）+ trivy（依赖 CVE + Secrets + IaC）+ gitleaks（Git history 密钥）+ Claude 语义分析。
-首次使用需运行 `{SKILL_DIR}/demon-hunter/setup` 下载工具（约 150MB，存入 skill 目录，不影响系统）。
+首次使用需运行 `{SKILL_DIR}/setup` 安装工具和 dashboard（约 150MB，存入 skill 目录，不影响系统）。
 
 ---
 

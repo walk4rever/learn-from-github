@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# judge-the-code setup — build the view binary
+# Run once after installing the skill.
+set -euo pipefail
+
+SKILL_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="$SKILL_DIR/bin"
+mkdir -p "$BIN_DIR"
+
+echo "🔧 judge-the-code setup"
+echo ""
+
+# ── view binary ──────────────────────────────────────────────────────────────
+if [ -x "$BIN_DIR/view" ]; then
+  echo "  ✅ view already built"
+else
+  if ! command -v go &>/dev/null; then
+    echo "  ⚠️  Go not found — skipping view binary (dashboard unavailable)"
+    echo "     Install Go from https://go.dev to enable the dashboard"
+  else
+    echo "  Building view..."
+    (cd "$SKILL_DIR/view" && go build -o "$BIN_DIR/view" .)
+    echo "  ✅ view built → $BIN_DIR/view"
+  fi
+fi
+
+echo ""
+echo "  Run: view <project-path>   # open dashboard in browser"
+echo ""
+
+# ── demon-hunter tools ───────────────────────────────────────────────────────
+echo "  Setting up demon-hunter tools..."
+"$SKILL_DIR/demon-hunter/setup"
