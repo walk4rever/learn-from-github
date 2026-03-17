@@ -4,8 +4,10 @@ description: >-
   发现代码库中的安全漏洞、依赖 CVE、密钥泄漏和设计层隐患。
   混合架构：bearer（SAST 数据流分析）+ trivy（依赖漏洞）+ gitleaks（密钥泄漏）
   三件套工具扫描，加 Claude 语义分析，输出 .judge-the-code/demon-hunter.md 报告。
-  TRIGGER when: 用户想找安全漏洞、检查依赖风险、审查 AI 生成的代码、
-  或说了"帮我找漏洞"、"有没有安全问题"、"这个项目有什么隐患"。
+  TRIGGER when: 用户想找安全漏洞、检查依赖风险、审查 AI 生成的代码是否有问题、
+  或说了"帮我找漏洞"、"有没有安全问题"、"这个项目有什么隐患"、
+  "帮我 review 一下这段代码"、"AI 写的代码靠谱吗"、"有没有什么坑"、
+  "依赖安不安全"、"有没有 CVE"。也应在用户提交 PR 前主动建议使用。
   DO NOT TRIGGER when: 用户只想理解项目结构（用 code-explore）
   或提炼设计哲学（用 design-lens）。
 origin: judge-the-code
