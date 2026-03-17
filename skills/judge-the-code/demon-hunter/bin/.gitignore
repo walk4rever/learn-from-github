@@ -1,0 +1,4 @@
+# Downloaded tool binaries — do not commit
+bearer
+trivy
+gitleaks

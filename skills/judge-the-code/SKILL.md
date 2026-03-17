@@ -42,13 +42,14 @@ understand-repo  →  philosophy-extractor  →  demon-hunter（规划中）
 4 个并行 Agent 分析命名风格、错误处理、测试取向、架构决策。
 输出 `PHILOSOPHY.md`，每条决策打标签：🔮 精妙 / ✅ 合理 / ⚠️ 存疑 / ❌ 反模式。
 
-### 第三步：猎杀恶魔（规划中）
+### 第三步：猎杀恶魔
 
 ```
 /demon-hunter .
 ```
 
-结合 semgrep / trivy 等工具 + Claude 语义分析，发现安全漏洞、性能隐患、设计陷阱。
+bearer（SAST）+ trivy（依赖 CVE + Secrets + IaC）+ gitleaks（Git history 密钥）+ Claude 语义分析。
+首次使用需运行 `{SKILL_DIR}/demon-hunter/setup` 下载工具（约 150MB，存入 skill 目录，不影响系统）。
 
 ---
 

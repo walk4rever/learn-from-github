@@ -24,21 +24,38 @@ esac
 # ── helpers ───────────────────────────────────────────────────────────────────
 latest_version() {
   # $1 = owner/repo  →  echoes version string without leading "v"
-  curl -sf "https://api.github.com/repos/$1/releases/latest" \
-    | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'].lstrip('v'))"
+  local out
+  out=$(curl -sf --max-time 15 "https://api.github.com/repos/$1/releases/latest" 2>/dev/null) || {
+    echo "❌ Failed to fetch version for $1 (network error or GitHub rate limit)" >&2
+    return 1
+  }
+  echo "$out" | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'].lstrip('v'))" 2>/dev/null || {
+    echo "❌ Failed to parse version for $1 (unexpected API response)" >&2
+    return 1
+  }
 }
 
 download_tar() {
   # $1=display_name $2=url $3=binary_name_in_archive
   local name="$1" url="$2" bin="$3"
   echo "  Downloading $name..."
+
+  # Check curl is available
+  command -v curl &>/dev/null || { echo "  ❌ curl is required but not found"; return 1; }
+
   local tmp
   tmp=$(mktemp -d)
-  curl -sSfL --retry 3 "$url" | tar -xz -C "$tmp"
+  if ! curl -sSfL --retry 3 --max-time 120 "$url" | tar -xz -C "$tmp"; then
+    echo "  ❌ Download failed: $url"
+    echo "     Check your network connection or try again later."
+    rm -rf "$tmp"; return 1
+  fi
   local found
   found=$(find "$tmp" -type f -name "$bin" | head -1)
   if [ -z "$found" ]; then
-    echo "  ❌ $bin not found in archive. Contents:"; ls "$tmp"; rm -rf "$tmp"; return 1
+    echo "  ❌ Binary '$bin' not found in archive."
+    echo "     Archive contents:"; ls "$tmp"
+    rm -rf "$tmp"; return 1
   fi
   mv "$found" "$BIN_DIR/$bin"
   chmod +x "$BIN_DIR/$bin"
@@ -94,10 +111,17 @@ echo "   Platform: $OS/$ARCH"
 echo "   Install dir: $BIN_DIR"
 echo ""
 
-install_bearer
-install_trivy
-install_gitleaks
+FAILED=0
+install_bearer  || FAILED=$((FAILED+1))
+install_trivy   || FAILED=$((FAILED+1))
+install_gitleaks || FAILED=$((FAILED+1))
 
 echo ""
-echo "✅ All tools ready."
-echo "   Run: /demon-hunter <path>"
+if [ "$FAILED" -eq 0 ]; then
+  echo "✅ All tools ready."
+  echo "   Run: /demon-hunter <path>"
+else
+  echo "⚠️  $FAILED tool(s) failed to install."
+  echo "   demon-hunter will skip missing tools and continue with available ones."
+  echo "   Re-run this script once network is available to complete setup."
+fi

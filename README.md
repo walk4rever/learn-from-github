@@ -68,7 +68,7 @@ Taste（欣赏力）                    Judgment（判断力）
 |------|------|------|------|
 | `understand-repo` | Skill | 建立代码库全局认知（结构、技术栈、入口、依赖） | ✅ 可用 |
 | `philosophy-extractor` | Skill | 提取设计哲学与关键决策，找到值得学习和质疑的地方 | ✅ 可用 |
-| `demon-hunter` | Skill + Go CLI | 发现安全漏洞、性能隐患、技术债、设计陷阱 | 🚧 规划中 |
+| `demon-hunter` | Skill + 工具 | 发现安全漏洞、依赖 CVE、密钥泄漏、性能隐患、设计陷阱 | ✅ 可用 |
 
 三个组件组合使用，构成完整的 `judge-the-code` 工作流：
 
@@ -92,7 +92,7 @@ understand-repo  →  philosophy-extractor  →  demon-hunter
 # 第二步：提炼设计哲学
 /philosophy-extractor .
 
-# 第三步：猎杀恶魔（规划中）
+# 第三步：猎杀恶魔
 /demon-hunter .
 ```
 
