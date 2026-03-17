@@ -120,7 +120,22 @@ $BEARER scan {TARGET} \
   --severity=critical,high \
   --quiet \
   2>/dev/null | head -c 100000
+# bearer 输出格式：{"critical":[...], "high":[...]}，按 severity 分组
 # head -c 100000 防止超大输出撑爆上下文
+```
+
+统计摘要（传给 Agent 1 前先提取）：
+```bash
+python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+c = len(data.get('critical', []))
+h = len(data.get('high', []))
+print(f'bearer: critical={c}, high={h}')
+for sev in ['critical','high']:
+    for f in data.get(sev, []):
+        print(f'  [{sev}] {f[\"filename\"]}:{f[\"line_number\"]} — {f[\"id\"]}')
+"
 ```
 
 **Trivy（SCA + Secrets + IaC）：**

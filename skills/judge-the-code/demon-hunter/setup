@@ -23,10 +23,9 @@ esac
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 latest_version() {
-  # $1 = owner/repo
+  # $1 = owner/repo  →  echoes version string without leading "v"
   curl -sf "https://api.github.com/repos/$1/releases/latest" \
-    | grep '"tag_name"' | head -1 \
-    | sed 's/.*"v\?\([^"]*\)".*/\1/'
+    | python3 -c "import json,sys; print(json.load(sys.stdin)['tag_name'].lstrip('v'))"
 }
 
 download_tar() {
