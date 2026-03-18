@@ -275,11 +275,14 @@ A: [基于架构给出步骤]
 
 保存文件到`.judge-the-code/code-explore.md`。
 
-**保存完成后，输出：**
+**保存完成后，你必须使用 bash 执行 `{SKILL_DIR}/bin/view .` 生成并打开 dashboard。**
+
+**执行完成后，输出：**
 ```
 📄 .judge-the-code/code-explore.md 已生成
+📊 Dashboard 已更新并在浏览器中打开。
 
-运行 view . 打开 dashboard，或直接问我任何关于这个项目的问题。
+或直接问我任何关于这个项目的问题。
 ```
 
 同时初始化状态目录（如不存在则创建）：

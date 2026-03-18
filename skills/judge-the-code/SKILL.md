@@ -2,8 +2,9 @@
 name: judge-the-code
 description: >-
   帮助人类在 AI 大量生成代码的时代，保持对代码的 Judgment 和 Taste。
-  包含三个渐进式 skill：code-explore（建立结构认知）、
-  design-lens（提炼设计哲学）、demon-hunter（发现安全漏洞与设计陷阱）。
+  包含四个渐进式 skill：code-explore（建立结构认知）、
+  design-lens（提炼设计哲学）、demon-hunter（发现安全漏洞与设计陷阱）、
+  token-optimize（发现 Token 浪费与隐患）。
   TRIGGER when: 用户想理解、评估、学习一个代码库，或想 review AI 生成的代码。
 origin: judge-the-code
 version: 0.8.0
@@ -15,12 +16,12 @@ version: 0.8.0
 
 这个 skill 套件帮你保持对代码的判断力。
 
-## 三层工作流
+## 四层工作流
 
 ```
-code-explore  →  design-lens  →  demon-hunter
-"这个项目长什么样"    "哪里设计得好，为什么"      "哪里有恶魔"
-     结构层                 欣赏层                   判断层
+code-explore  →  design-lens  →  demon-hunter  →  token-optimize
+"这个项目长什么样"    "哪里设计得好，为什么"      "哪里有恶魔"        "哪里在烧钱"
+     结构层                 欣赏层                   判断层                 经济层
 ```
 
 ### 第一步：建立结构认知
@@ -50,6 +51,14 @@ code-explore  →  design-lens  →  demon-hunter
 
 bearer（SAST）+ trivy（依赖 CVE + Secrets + IaC）+ gitleaks（Git history 密钥）+ Claude 语义分析。
 首次使用需运行 `{SKILL_DIR}/setup` 安装工具和 dashboard（约 150MB，存入 skill 目录，不影响系统）。
+
+### 第四步：Token 经济学诊断
+
+```
+/token-optimize .
+```
+
+纯静态分析代码中的大模型交互点，推演 Token 消耗爆炸隐患、长上下文导致的注意力污染，并给出具体的降本、提速、防幻觉建议。
 
 ---
 

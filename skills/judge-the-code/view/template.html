@@ -180,23 +180,30 @@ header h1 span { color: #58a6ff; }
     <span class="icon">👹</span>demon-hunter
     <span class="badge" id="badge-hunter">—</span>
   </button>
+  <button class="tab-btn" onclick="show('optimize')" id="tab-optimize">
+    <span class="icon">🪙</span>token-optimize
+    <span class="badge" id="badge-optimize">—</span>
+  </button>
 </div>
 
 <div id="panel-explore" class="panel active"></div>
 <div id="panel-lens" class="panel"></div>
 <div id="panel-hunter" class="panel"></div>
+<div id="panel-optimize" class="panel"></div>
 
 <script>
 const content = {
   explore: <!--CONTENT_EXPLORE-->,
   lens:    <!--CONTENT_LENS-->,
-  hunter:  <!--CONTENT_HUNTER-->
+  hunter:  <!--CONTENT_HUNTER-->,
+  optimize: <!--CONTENT_OPTIMIZE-->
 };
 
 const EMPTY_MSGS = {
-  explore: { cmd: '/code-explore .', msg: '尚未运行 code-explore' },
-  lens:    { cmd: '/design-lens .', msg: '尚未运行 design-lens' },
-  hunter:  { cmd: '/demon-hunter .', msg: '尚未运行 demon-hunter' },
+  explore:  { cmd: '/code-explore .', msg: '尚未运行 code-explore' },
+  lens:     { cmd: '/design-lens .', msg: '尚未运行 design-lens' },
+  hunter:   { cmd: '/demon-hunter .', msg: '尚未运行 demon-hunter' },
+  optimize: { cmd: '/token-optimize .', msg: '尚未运行 token-optimize' },
 };
 
 // ── markdown-it setup ──
@@ -285,6 +292,7 @@ function show(id) {
   await renderPanel('explore');
   await renderPanel('lens');
   await renderPanel('hunter');
+  await renderPanel('optimize');
 })();
 </script>
 

@@ -231,9 +231,12 @@ version: 1.1.0
 
 保存到`.judge-the-code/design-lens.md`。
 
-**保存完成后，输出：**
+**保存完成后，你必须使用 bash 执行 `{SKILL_DIR}/bin/view .` 生成并打开 dashboard。**
+
+**执行完成后，输出：**
 ```
 📄 .judge-the-code/design-lens.md 已生成
+📊 Dashboard 已更新并在浏览器中打开。
 
 进入互动模式，你可以继续问：
 - "为什么 [某个决策] 被标记为存疑？"

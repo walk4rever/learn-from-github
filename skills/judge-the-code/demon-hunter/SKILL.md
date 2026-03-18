@@ -254,9 +254,12 @@ $GITLEAKS detect \
 
 保存到`.judge-the-code/demon-hunter.md`。
 
-**保存完成后，输出：**
+**保存完成后，你必须使用 bash 执行 `{SKILL_DIR}/bin/view .` 生成并打开 dashboard。**
+
+**执行完成后，输出：**
 ```
 📄 .judge-the-code/demon-hunter.md 已生成
+📊 Dashboard 已更新并在浏览器中打开。
 
 进入互动模式，你可以继续问：
 - "帮我展开说说 [某个漏洞]"

@@ -36,6 +36,7 @@ func main() {
 		{ID: "explore", Label: "code-explore", Icon: "🗺", File: "code-explore.md"},
 		{ID: "lens", Label: "design-lens", Icon: "🔍", File: "design-lens.md"},
 		{ID: "hunter", Label: "demon-hunter", Icon: "👹", File: "demon-hunter.md"},
+		{ID: "optimize", Label: "token-optimize", Icon: "🪙", File: "token-optimize.md"},
 	}
 
 	for i, s := range skills {
