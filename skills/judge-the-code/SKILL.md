@@ -7,7 +7,7 @@ description: >-
   token-optimize（发现 Token 浪费与隐患）。
   TRIGGER when: 用户想理解、评估、学习一个代码库，或想 review AI 生成的代码。
 origin: judge-the-code
-version: 0.8.0
+version: 0.8.1
 ---
 
 # judge-the-code

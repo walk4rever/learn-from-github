@@ -109,16 +109,16 @@ Glob pattern="*/*/*"       # 第三层（通常足够推断架构）
 ```mermaid
 graph TD
   subgraph routes["Routes 层 — HTTP 路由入口"]
-    R[api.ts]
+    R["api.ts"]
   end
   subgraph controllers["Controllers 层 — 解析参数，调用 Service"]
-    C[UserController.ts]
+    C["UserController.ts"]
   end
   subgraph services["Services 层 — 核心业务逻辑"]
-    S[UserService.ts]
+    S["UserService.ts"]
   end
   subgraph models["Models 层 — 数据模型"]
-    M[User.ts]
+    M["User.ts"]
   end
   routes --> controllers
   controllers --> services
@@ -130,6 +130,8 @@ graph TD
 - 同目录下文件 > 3 个：合并为一个 subgraph，subgraph 名 = 目录名
 - 总节点数上限 15 个；超出时只保留顶层目录级别的 subgraph
 - 每个节点/subgraph 的标签格式：`名称 — 一句话职责`
+- Mermaid 兼容性规则：**所有节点标签必须使用引号**（如 `A["label"]`），
+  标签包含 `/`、`*`、`:`、`.`、空格或中文标点时，禁止使用 `A[label]` 裸写法
 
 ### 核心模块
 | 模块 | 路径 | 职责 |
