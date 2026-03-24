@@ -10,7 +10,6 @@ description: >-
   "这个 repo 是干嘛的"、"帮我看懂这个"、"给我讲讲这个项目的结构"。
   DO NOT TRIGGER when: 用户只想修改或调试某个具体文件，或只问单个函数的问题。
 origin: judge-the-code
-version: 2.0.1
 ---
 
 # Understand Repo — GitHub 项目理解向导

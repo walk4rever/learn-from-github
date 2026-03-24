@@ -5,7 +5,6 @@ description: >-
   提供从模型降级、上下文裁剪到启用缓存等具体的 Token 优化建议。
   TRIGGER when: 用户想优化大模型 API 消耗、检查 Token 成本、"找找哪里浪费了 token"或想降低大模型延迟时。
 origin: judge-the-code
-version: 1.0.0
 ---
 
 # Token Economist — 提示词狙击手

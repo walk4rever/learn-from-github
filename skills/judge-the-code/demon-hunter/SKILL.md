@@ -11,7 +11,6 @@ description: >-
   DO NOT TRIGGER when: 用户只想理解项目结构（用 code-explore）
   或提炼设计哲学（用 design-lens）。
 origin: judge-the-code
-version: 1.0.0
 ---
 
 # Demon Hunter — 恶魔猎手

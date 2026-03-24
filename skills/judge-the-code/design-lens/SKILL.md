@@ -11,7 +11,6 @@ description: >-
   DO NOT TRIGGER when: 用户只想理解项目结构（用 code-explore），
   或只想找安全漏洞（用 demon-hunter）。
 origin: judge-the-code
-version: 1.1.0
 ---
 
 # Philosophy Extractor — 设计哲学提炼器
